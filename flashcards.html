@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>German Flashcards</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #f5f0e8;
+    --paper: #faf7f2;
+    --ink: #1a1612;
+    --muted: #8a7f72;
+    --accent: #c0392b;
+    --accent-soft: #e8cfc9;
+    --green: #2d6a4f;
+    --green-soft: #c8e6c9;
+    --blue: #2563a8;
+    --blue-soft: #dbeafe;
+    --card-shadow: 0 8px 32px rgba(26,22,18,0.18), 0 2px 8px rgba(26,22,18,0.10);
+    --radius: 16px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(192,57,43,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 90%, rgba(45,106,79,0.06) 0%, transparent 50%);
+  }
+
+  /* ── Header ── */
+  header {
+    width: 100%;
+    padding: 28px 40px 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-bottom: 1.5px solid rgba(26,22,18,0.10);
+    background: var(--paper);
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  header h1 span { color: var(--accent); font-style: italic; font-weight: 400; }
+  header nav { margin-left: auto; display: flex; gap: 8px; }
+  header nav button {
+    background: none; border: 1.5px solid rgba(26,22,18,0.18);
+    color: var(--ink); font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem; font-weight: 500; letter-spacing: 0.04em;
+    padding: 6px 14px; border-radius: 99px; cursor: pointer;
+    transition: all 0.18s;
+  }
+  header nav button:hover { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+  header nav button.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+
+  /* ── Screens ── */
+  .screen { display: none; width: 100%; flex: 1; }
+  .screen.visible { display: flex; }
+
+  /* ── Load Screen ── */
+  #screen-load {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    padding: 60px 24px;
+  }
+  .load-box {
+    background: var(--paper);
+    border: 1.5px solid rgba(26,22,18,0.14);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    padding: 48px 40px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+  }
+  .load-box h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 10px; }
+  .load-box p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 28px; }
+  .drop-zone {
+    border: 2px dashed rgba(26,22,18,0.22);
+    border-radius: 12px;
+    padding: 40px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--cream);
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .drop-zone p { font-size: 0.88rem; color: var(--muted); margin: 0; }
+  .drop-zone strong { color: var(--ink); }
+  .or-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--muted); font-size: 0.8rem; }
+  .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: rgba(26,22,18,0.12); }
+  .btn-primary {
+    background: var(--ink); color: var(--cream);
+    border: none; padding: 12px 28px; border-radius: 99px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    font-weight: 500; cursor: pointer; transition: opacity 0.18s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary:hover { opacity: 0.82; }
+  .btn-accent { background: var(--accent); }
+  .sample-note { font-size: 0.78rem; color: var(--muted); margin-top: 14px; line-height: 1.5; }
+  .sample-note code {
+    font-family: 'DM Mono', monospace;
+    background: rgba(26,22,18,0.07);
+    padding: 2px 5px; border-radius: 4px; font-size: 0.76rem;
+  }
+
+  /* ── Edit Screen ── */
+  #screen-edit { flex-direction: column; align-items: center; padding: 40px 24px; gap: 24px; }
+  .edit-header { width: 100%; max-width: 680px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .edit-header h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; flex: 1; }
+  .edit-table-wrap {
+    width: 100%; max-width: 680px;
+    background: var(--paper);
+    border: 1.5px solid rgba(26,22,18,0.12);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-family: 'DM Mono', monospace; font-size: 0.72rem; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); padding: 14px 18px;
+    border-bottom: 1.5px solid rgba(26,22,18,0.10); text-align: left;
+  }
+  tbody tr { border-bottom: 1px solid rgba(26,22,18,0.07); transition: background 0.12s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(26,22,18,0.025); }
+  tbody td { padding: 0; }
+  tbody td input {
+    width: 100%; padding: 11px 18px;
+    border: none; background: transparent;
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+    color: var(--ink); outline: none;
+  }
+  tbody td input:focus { background: rgba(192,57,43,0.04); }
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1rem; padding: 10px 14px; transition: color 0.15s; }
+  .del-btn:hover { color: var(--accent); }
+  .edit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ── Setup Panel ── */
+  .setup-panel {
+    width: 100%; max-width: 520px;
+    background: var(--paper);
+    border: 1.5px solid rgba(26,22,18,0.12);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 12px rgba(26,22,18,0.07);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .setup-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .setup-label {
+    font-family: 'DM Mono', monospace; font-size: 0.69rem;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); min-width: 48px;
+  }
+  .mode-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mode-pill {
+    border: 1.5px solid rgba(26,22,18,0.18);
+    background: none; color: var(--ink);
+    font-family: 'DM Sans', sans-serif; font-size: 0.78rem;
+    font-weight: 500; padding: 5px 13px; border-radius: 99px;
+    cursor: pointer; transition: all 0.16s;
+  }
+  .mode-pill:hover { border-color: var(--ink); }
+  .mode-pill.sel-german  { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .mode-pill.sel-english { background: var(--blue);   color: #fff; border-color: var(--blue); }
+  .mode-pill.sel-mixed   { background: #6d4c9c;       color: #fff; border-color: #6d4c9c; }
+
+  /* Custom checkboxes */
+  .check-label { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+  .check-label input[type="checkbox"] { display: none; }
+  .check-box {
+    width: 18px; height: 18px;
+    border: 1.5px solid rgba(26,22,18,0.28); border-radius: 5px;
+    background: var(--cream); display: flex; align-items: center;
+    justify-content: center; font-size: 0.72rem; transition: all 0.15s; flex-shrink: 0;
+  }
+  .check-label input:checked ~ .check-box { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .check-label input:checked ~ .check-box::after { content: '✓'; }
+  .check-text { font-size: 0.82rem; }
+
+  /* ── Play Screen ── */
+  #screen-play {
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 28px 24px; gap: 0; min-height: calc(100vh - 80px);
+  }
+
+  .progress-bar-wrap { width: 100%; max-width: 520px; margin-bottom: 18px; }
+  .progress-meta {
+    display: flex; justify-content: space-between;
+    font-family: 'DM Mono', monospace; font-size: 0.75rem;
+    color: var(--muted); margin-bottom: 8px; align-items: center;
+  }
+  .mode-badge {
+    font-family: 'DM Mono', monospace; font-size: 0.68rem;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 3px 9px; border-radius: 99px; font-weight: 500;
+  }
+  .mode-badge.german  { background: var(--accent-soft); color: var(--accent); }
+  .mode-badge.english { background: var(--blue-soft); color: var(--blue); }
+  .mode-badge.mixed   { background: #ede9f7; color: #6d4c9c; }
+  .progress-track { height: 4px; background: rgba(26,22,18,0.10); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.4s ease; }
+
+  /* Card */
+  .card-scene {
+    width: 100%; max-width: 520px; height: 280px;
+    perspective: 1000px; cursor: pointer; margin-bottom: 26px;
+  }
+  .card-inner {
+    width: 100%; height: 100%; position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  }
+  .card-scene.flipped .card-inner { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    background: var(--paper); border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px; border: 1.5px solid rgba(26,22,18,0.10);
+  }
+  .card-back { transform: rotateY(180deg); }
+  .card-label {
+    font-family: 'DM Mono', monospace; font-size: 0.68rem;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); margin-bottom: 18px;
+  }
+  .card-word {
+    font-family: 'Playfair Display', serif; font-size: 2.6rem;
+    font-weight: 700; text-align: center; line-height: 1.1; color: var(--ink);
+  }
+  .card-back .card-word { color: var(--accent); }
+  .card-back.eng-back .card-word { color: var(--blue); }
+  .card-hint { margin-top: 14px; font-size: 0.82rem; color: var(--muted); font-style: italic; font-family: 'Playfair Display', serif; }
+  .card-tap-hint { font-size: 0.75rem; color: rgba(138,127,114,0.6); margin-top: 20px; font-family: 'DM Mono', monospace; letter-spacing: 0.06em; }
+
+  /* Input */
+  .typewriter-section {
+    width: 100%; max-width: 520px;
+    display: flex; background: var(--paper);
+    border: 1.5px solid rgba(26,22,18,0.14); border-radius: var(--radius);
+    box-shadow: 0 2px 10px rgba(26,22,18,0.06);
+    overflow: hidden; transition: border-color 0.2s; margin-bottom: 14px;
+  }
+  .typewriter-section:focus-within { border-color: var(--ink); }
+  .typewriter-section.correct { border-color: var(--green); background: var(--green-soft); }
+  .typewriter-section.wrong   { border-color: var(--accent); background: var(--accent-soft); }
+  #answer-input {
+    flex: 1; font-family: 'DM Mono', monospace; font-size: 1.05rem;
+    border: none; background: transparent; padding: 16px 20px; outline: none; color: var(--ink);
+  }
+  #answer-input::placeholder { color: var(--muted); font-style: italic; }
+
+  .action-row { width: 100%; max-width: 520px; display: flex; gap: 10px; }
+  .btn-skip {
+    background: none; border: 1.5px solid rgba(26,22,18,0.18); color: var(--muted);
+    padding: 12px 22px; border-radius: 99px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.18s; white-space: nowrap;
+  }
+  .btn-skip:hover { border-color: var(--ink); color: var(--ink); }
+  .btn-check {
+    flex: 1; background: var(--ink); color: var(--cream);
+    border: none; padding: 12px 22px; border-radius: 99px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem;
+    font-weight: 500; cursor: pointer; transition: opacity 0.18s;
+  }
+  .btn-check:hover { opacity: 0.8; }
+
+  .result-badge {
+    display: none; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 99px;
+    font-family: 'DM Mono', monospace; font-size: 0.82rem;
+    font-weight: 500; margin-bottom: 10px;
+  }
+  .result-badge.show { display: flex; }
+  .result-badge.correct { background: var(--green-soft); color: var(--green); }
+  .result-badge.wrong   { background: var(--accent-soft); color: var(--accent); }
+
+  .stats-row {
+    display: flex; gap: 28px; margin-top: 22px;
+    font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--muted);
+  }
+  .stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .stat strong { font-size: 1.3rem; color: var(--ink); font-family: 'Playfair Display', serif; }
+  .stat.green strong { color: var(--green); }
+  .stat.red   strong { color: var(--accent); }
+
+  /* Done */
+  #screen-done { flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; min-height: calc(100vh - 80px); }
+  .done-card {
+    background: var(--paper); border: 1.5px solid rgba(26,22,18,0.12);
+    border-radius: var(--radius); box-shadow: var(--card-shadow);
+    padding: 48px 40px; max-width: 420px; width: 100%; text-align: center;
+  }
+  .done-card h2 { font-family: 'Playfair Display', serif; font-size: 1.8rem; margin-bottom: 10px; }
+  .done-card p  { color: var(--muted); font-size: 0.9rem; margin-bottom: 28px; }
+  .done-stats   { display: flex; justify-content: center; gap: 32px; margin-bottom: 32px; }
+
+  /* Infinite pip */
+  .inf-pip { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+  .inf-pip span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pip 1.4s ease-in-out infinite; }
+  @keyframes pip { 0%,100%{opacity:0.3;transform:scale(0.85)} 50%{opacity:1;transform:scale(1)} }
+
+  @media (max-width: 580px) {
+    header { padding: 18px 20px; }
+    header h1 { font-size: 1.4rem; }
+    .load-box, .done-card { padding: 32px 22px; }
+    .card-word { font-size: 1.9rem; }
+    .card-scene { height: 240px; }
+  }
+
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.92) translateY(12px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0); }
+  }
+  .pop-in { animation: pop-in 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+
+  @keyframes shake {
+    0%,100%{ transform: translateX(0); }
+    20%    { transform: translateX(-8px); }
+    40%    { transform: translateX(8px); }
+    60%    { transform: translateX(-5px); }
+    80%    { transform: translateX(5px); }
+  }
+  .shake { animation: shake 0.38s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Deutsch <span>Karten</span></h1>
+  <nav>
+    <button id="nav-load" class="active" onclick="showScreen('load')">Load</button>
+    <button id="nav-edit" onclick="showScreen('edit')">Edit</button>
+    <button id="nav-play" onclick="startPlay()">Play ▶</button>
+  </nav>
+</header>
+
+<!-- ── LOAD ── -->
+<div id="screen-load" class="screen visible">
+  <div class="load-box pop-in">
+    <h2>Load your word list</h2>
+    <p>Drag in a JSON file of words you want to learn, or use the sample deck to get started right away.</p>
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept=".json">
+      <div class="drop-icon">📂</div>
+      <p><strong>Drop your JSON file here</strong><br>or click to browse</p>
+    </div>
+    <div class="or-divider">or</div>
+    <button class="btn-primary btn-accent" onclick="loadSample()">✦ Load sample deck</button>
+    <p class="sample-note">
+      Your JSON should be an array like:<br><br>
+      <code>[{"german":"der Hund","english":"dog","hint":"optional"}]</code>
+    </p>
+  </div>
+</div>
+
+<!-- ── EDIT ── -->
+<div id="screen-edit" class="screen">
+  <div class="edit-header">
+    <h2>Your word list</h2>
+    <div class="edit-actions">
+      <button class="btn-primary" onclick="addRow()" style="font-size:0.82rem;padding:9px 18px;">+ Add word</button>
+      <button class="btn-primary" onclick="downloadJSON()" style="font-size:0.82rem;padding:9px 18px;background:#4a5568;">↓ Save JSON</button>
+      <button class="btn-primary btn-accent" onclick="startPlay()" style="font-size:0.82rem;padding:9px 18px;">Play ▶</button>
+    </div>
+  </div>
+  <div class="edit-table-wrap">
+    <table>
+      <thead><tr><th>German</th><th>English</th><th>Hint (optional)</th><th></th></tr></thead>
+      <tbody id="word-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── PLAY ── -->
+<div id="screen-play" class="screen">
+
+  <!-- Options panel -->
+  <div class="setup-panel">
+    <div class="setup-row">
+      <div class="setup-label">Mode</div>
+      <div class="mode-pills">
+        <button class="mode-pill sel-german" id="pill-german"  onclick="setMode('german')">🇩🇪 DE → EN</button>
+        <button class="mode-pill"            id="pill-english" onclick="setMode('english')">🇬🇧 EN → DE</button>
+        <button class="mode-pill"            id="pill-mixed"   onclick="setMode('mixed')">🔀 Mixed</button>
+      </div>
+    </div>
+    <div class="setup-row" style="gap:22px;">
+      <label class="check-label">
+        <input type="checkbox" id="chk-infinite" onchange="infiniteMode=this.checked">
+        <div class="check-box"></div>
+        <span class="check-text">Infinite mode</span>
+      </label>
+      <label class="check-label">
+        <input type="checkbox" id="chk-shuffle" checked onchange="shuffleMode=this.checked">
+        <div class="check-box"></div>
+        <span class="check-text">Shuffle cards</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar-wrap">
+    <div class="progress-meta">
+      <span id="prog-text">Card 1 of 0</span>
+      <span id="mode-badge" class="mode-badge german">DE → EN</span>
+      <span id="prog-right"></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Card -->
+  <div class="card-scene" id="card-scene" onclick="flipCard()">
+    <div class="card-inner">
+      <div class="card-face">
+        <div class="card-label" id="front-label">German</div>
+        <div class="card-word" id="front-word">—</div>
+        <div class="card-hint" id="hint-front"></div>
+        <div class="card-tap-hint">tap to reveal</div>
+      </div>
+      <div class="card-face card-back" id="card-back-face">
+        <div class="card-label" id="back-label">English</div>
+        <div class="card-word" id="back-word">—</div>
+        <div class="card-hint" id="hint-back"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-badge" id="result-badge"></div>
+
+  <div class="typewriter-section" id="tw-wrap">
+    <input type="text" id="answer-input" placeholder="Type your answer…" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+
+  <div class="action-row">
+    <button class="btn-skip" onclick="skipCard()">Skip →</button>
+    <button class="btn-check" id="btn-check" onclick="checkOrNext()">Check answer</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat green"><strong id="stat-correct">0</strong>correct</div>
+    <div class="stat red">  <strong id="stat-wrong">0</strong>wrong</div>
+    <div class="stat">      <strong id="stat-skip">0</strong>skipped</div>
+  </div>
+</div>
+
+<!-- ── DONE ── -->
+<div id="screen-done" class="screen">
+  <div class="done-card pop-in">
+    <div style="font-size:2.8rem;margin-bottom:16px;">🎉</div>
+    <h2>Deck complete!</h2>
+    <p>Here's how you did this round:</p>
+    <div class="done-stats">
+      <div class="stat green"><strong id="done-correct">0</strong>correct</div>
+      <div class="stat red">  <strong id="done-wrong">0</strong>wrong</div>
+      <div class="stat">      <strong id="done-skip">0</strong>skipped</div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-primary btn-accent" onclick="startPlay()">Play again ↺</button>
+      <button class="btn-primary" style="background:#4a5568;" onclick="showScreen('edit')">Edit words</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let words        = [];
+let deck         = [];   // [{wordIdx, dir}]
+let deckIdx      = 0;
+let revealed     = false;
+let cardDir      = 'german';
+let currentMode  = 'german';
+let infiniteMode = false;
+let shuffleMode  = true;
+let stats        = { correct: 0, wrong: 0, skip: 0 };
+
+// ── Screens ────────────────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+  document.getElementById('screen-' + name).classList.add('visible');
+  document.querySelectorAll('header nav button').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nav-' + name);
+  if (nb) nb.classList.add('active');
+  if (name === 'edit') renderTable();
+}
+
+// ── Mode pills ─────────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  ['german','english','mixed'].forEach(m => {
+    const p = document.getElementById('pill-' + m);
+    p.className = 'mode-pill' + (m === mode ? ' sel-' + m : '');
+  });
+}
+
+// ── File loading ───────────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0]; if (f) readFile(f);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) readFile(fileInput.files[0]); });
+
+function readFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('Expected an array');
+      words = data.map(w => ({ german: String(w.german || ''), english: String(w.english || ''), hint: w.hint ? String(w.hint) : '' }));
+      showScreen('edit');
+    } catch(err) { alert('Could not parse file: ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function loadSample() {
+  words = [
+    { german: 'der Hund',    english: 'dog',             hint: 'sounds like "hound"' },
+    { german: 'die Katze',   english: 'cat',             hint: '' },
+    { german: 'das Haus',    english: 'house',           hint: 'similar to English' },
+    { german: 'trinken',     english: 'to drink',        hint: '' },
+    { german: 'essen',       english: 'to eat',          hint: '' },
+    { german: 'schlafen',    english: 'to sleep',        hint: '' },
+    { german: 'der Apfel',   english: 'apple',           hint: '' },
+    { german: 'die Schule',  english: 'school',          hint: '' },
+    { german: 'groß',        english: 'big / tall',      hint: 'opposite of klein' },
+    { german: 'klein',       english: 'small / little',  hint: '' },
+    { german: 'das Wasser',  english: 'water',           hint: '' },
+    { german: 'der Freund',  english: 'friend',          hint: '' },
+  ];
+  showScreen('edit');
+}
+
+// ── Edit ───────────────────────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('word-table');
+  tbody.innerHTML = '';
+  words.forEach((w, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${esc(w.german)}"       oninput="words[${i}].german=this.value"  placeholder="e.g. der Hund"></td>
+      <td><input value="${esc(w.english)}"      oninput="words[${i}].english=this.value" placeholder="e.g. dog"></td>
+      <td><input value="${esc(w.hint||'')}"     oninput="words[${i}].hint=this.value"    placeholder="optional hint"></td>
+      <td><button class="del-btn" onclick="deleteRow(${i})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  if (!words.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="4" style="padding:28px;text-align:center;color:var(--muted);font-size:0.88rem;">No words yet — add one or load a JSON file.</td>';
+    tbody.appendChild(tr);
+  }
+}
+function addRow() {
+  words.push({ german:'', english:'', hint:'' });
+  renderTable();
+  const inputs = document.querySelectorAll('#word-table input');
+  if (inputs.length) inputs[inputs.length - 3].focus();
+}
+function deleteRow(i) { words.splice(i,1); renderTable(); }
+function downloadJSON() {
+  const blob = new Blob([JSON.stringify(words.filter(w=>w.german||w.english), null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'german-flashcards.json'; a.click();
+}
+function esc(s) { return s.replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ── Build deck ─────────────────────────────────────────────────────────
+function buildDeck(pool) {
+  let entries = pool.map((_, i) => {
+    const dir = currentMode === 'mixed'
+      ? (Math.random() < 0.5 ? 'german' : 'english')
+      : currentMode;
+    return { wordIdx: i, dir };
+  });
+  if (shuffleMode) {
+    for (let i = entries.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [entries[i], entries[j]] = [entries[j], entries[i]];
+    }
+  }
+  return entries;
+}
+
+// ── Play ───────────────────────────────────────────────────────────────
+function startPlay() {
+  const valid = words.filter(w => w.german && w.english);
+  if (!valid.length) { alert('Add some words first!'); showScreen('edit'); return; }
+  words = valid;
+  deck = buildDeck(valid);
+  deckIdx = 0;
+  stats = { correct:0, wrong:0, skip:0 };
+  updateStats();
+  showScreen('play');
+  document.getElementById('nav-play').classList.add('active');
+  loadCard();
+}
+
+function loadCard() {
+  if (deckIdx >= deck.length) {
+    if (infiniteMode) {
+      deck = buildDeck(words);
+      deckIdx = 0;
+    } else {
+      showDone(); return;
+    }
+  }
+
+  revealed = false;
+  const entry = deck[deckIdx];
+  const card  = words[entry.wordIdx];
+  cardDir = entry.dir;
+
+  const isDE = cardDir === 'german';
+  const frontWord  = isDE ? card.german  : card.english;
+  const backWord   = isDE ? card.english : card.german;
+  const frontLang  = isDE ? 'German'     : 'English';
+  const backLang   = isDE ? 'English'    : 'German';
+  const ph         = isDE ? 'Type the English translation…' : 'Type the German translation…';
+
+  document.getElementById('front-word').textContent  = frontWord;
+  document.getElementById('back-word').textContent   = backWord;
+  document.getElementById('front-label').textContent = frontLang;
+  document.getElementById('back-label').textContent  = backLang;
+  document.getElementById('hint-front').textContent  = card.hint || '';
+  document.getElementById('hint-back').textContent   = card.hint ? '💡 ' + card.hint : '';
+  document.getElementById('answer-input').placeholder = ph;
+
+  // Colour the back face by direction
+  document.getElementById('card-back-face').className = 'card-face card-back' + (isDE ? '' : ' eng-back');
+
+  // Mode badge
+  const badge = document.getElementById('mode-badge');
+  if (currentMode === 'mixed') {
+    badge.className = 'mode-badge mixed';
+    badge.textContent = isDE ? '🇩🇪 DE→EN' : '🇬🇧 EN→DE';
+  } else if (currentMode === 'english') {
+    badge.className = 'mode-badge english'; badge.textContent = 'EN → DE';
+  } else {
+    badge.className = 'mode-badge german';  badge.textContent = 'DE → EN';
+  }
+
+  // Reset card
+  document.getElementById('card-scene').classList.remove('flipped');
+  const input = document.getElementById('answer-input');
+  const wrap  = document.getElementById('tw-wrap');
+  input.value = ''; input.disabled = false;
+  wrap.classList.remove('correct','wrong');
+  const rb = document.getElementById('result-badge');
+  rb.className = 'result-badge'; rb.textContent = '';
+  document.getElementById('btn-check').textContent = 'Check answer';
+
+  // Progress
+  const total = deck.length;
+  document.getElementById('prog-text').textContent = `Card ${deckIdx + 1} of ${total}`;
+  if (infiniteMode) {
+    document.getElementById('prog-right').innerHTML = '<span class="inf-pip"><span></span>∞</span>';
+    document.getElementById('prog-fill').style.width = ((deckIdx / total) * 100) + '%';
+  } else {
+    const pct = Math.round((deckIdx / total) * 100);
+    document.getElementById('prog-right').textContent = pct + '%';
+    document.getElementById('prog-fill').style.width  = pct + '%';
+  }
+
+  setTimeout(() => input.focus(), 80);
+}
+
+function flipCard() { document.getElementById('card-scene').classList.toggle('flipped'); }
+
+function checkOrNext() {
+  if (revealed) { deckIdx++; loadCard(); return; }
+
+  const input   = document.getElementById('answer-input');
+  const card    = words[deck[deckIdx].wordIdx];
+  const answer  = input.value.trim().toLowerCase();
+  const correctRaw = cardDir === 'german' ? card.english : card.german;
+  const correct    = correctRaw.toLowerCase();
+
+  // Normalise: strip leading articles in both languages
+  const norm = s => s.replace(/^(to |a |an |the |der |die |das )\s*/i,'').trim();
+  const ok   = norm(answer) === norm(correct) || answer === correct;
+
+  revealed = true;
+  input.disabled = true;
+  document.getElementById('card-scene').classList.add('flipped');
+
+  const wrap = document.getElementById('tw-wrap');
+  const rb   = document.getElementById('result-badge');
+
+  if (ok) {
+    wrap.classList.add('correct');
+    rb.className = 'result-badge correct show';
+    rb.textContent = '✓ Correct!';
+    stats.correct++;
+  } else {
+    wrap.classList.add('wrong');
+    rb.className = 'result-badge wrong show';
+    rb.innerHTML = `✗ &nbsp;Answer: <strong>${correctRaw}</strong>`;
+    wrap.classList.add('shake');
+    setTimeout(() => wrap.classList.remove('shake'), 400);
+    stats.wrong++;
+  }
+
+  document.getElementById('btn-check').textContent = 'Next card →';
+  updateStats();
+}
+
+function skipCard()  { stats.skip++; updateStats(); deckIdx++; loadCard(); }
+function updateStats() {
+  document.getElementById('stat-correct').textContent = stats.correct;
+  document.getElementById('stat-wrong').textContent   = stats.wrong;
+  document.getElementById('stat-skip').textContent    = stats.skip;
+}
+
+function showDone() {
+  document.getElementById('done-correct').textContent = stats.correct;
+  document.getElementById('done-wrong').textContent   = stats.wrong;
+  document.getElementById('done-skip').textContent    = stats.skip;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+  document.getElementById('screen-done').classList.add('visible');
+}
+
+document.getElementById('answer-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkOrNext();
+});
+</script>
+</body>
+</html>
